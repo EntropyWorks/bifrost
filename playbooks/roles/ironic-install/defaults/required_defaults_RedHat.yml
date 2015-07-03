@@ -1,6 +1,7 @@
 ---
 init_template: systemd_template.j2
 init_dest_dir: /usr/lib/systemd/system/
+ironic_bin_dir: /usr/bin/
 init_ext: .service
 syslinux_tftp_dir: /var/lib/tftpboot
 ipxe_dir: /usr/share/ipxe/
