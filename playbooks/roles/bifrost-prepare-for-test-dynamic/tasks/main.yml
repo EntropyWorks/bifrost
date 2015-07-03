@@ -24,6 +24,7 @@
   when: ipv4_address is defined
 - name: "Removing testvm hosts from ssh known_hosts file."
   command: ssh-keygen -R "{{ ipv4_address }}"
+  ignore_errors: yes
   when: ipv4_address is defined
 - name: "Adding testvm hosts from ssh known_hosts file."
   shell: ssh-keyscan "{{ ipv4_address }}" >> "{{ ansible_env.HOME }}/.ssh/known_hosts"
