@@ -18,6 +18,16 @@ Role Variables
 
 baremetal_csv_file: "/tmp/baremetal.csv"
 
+test_vm_memory_size: Tunable setting to allow a user to define a specific
+                     amount of RAM in MB to allocate to guest/test VMs.
+                     Defaults to "3072". Note: if this setting is modified
+                     between test runs, you may need to undefine the test
+                     virtual machine(s) that were previously created.
+
+test_vm_num_nodes: Tunable setting to allow a user to define the number of
+                   test VMs that will be created. They will all be created
+                   with same settings.
+
 Dependencies
 ------------
 
@@ -28,7 +38,7 @@ Example Playbook
 
 - hosts: localhost
   connection: local
-  sudo: yes
+  become: yes
   gather_facts: yes
   roles:
     - role: bifrost-create-vm-nodes

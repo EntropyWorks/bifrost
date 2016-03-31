@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Note(TheJulia): This script is no longer required by bifrost, however
+# it may prove useful to those performing complex feature development
+# within bifrost where they do not want to wait to rely upon CI jobs.
+# DEPRICATED: Remove after Mitaka cycle
+
 import re
 import subprocess
 import sys
@@ -47,7 +52,7 @@ try:
                          '-n', 'FETCH_HEAD'], stdout=True) is 0:
                     print("Applied %s" % ref)
                 else:
-                    print("Failed to cherry pick %s on to %s branch %s"
+                    print("Failed to cherry pick %s onto %s branch %s"
                           % (ref, repo_name, branch))
                     sys.exit(1)
             else:

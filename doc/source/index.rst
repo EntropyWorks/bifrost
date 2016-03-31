@@ -8,6 +8,10 @@ Contents:
 
    readme
    contributing
+   troubleshooting
+   vagrant
+   deploy/dhcp
+   offline-install
 
 Indices and tables
 ==================

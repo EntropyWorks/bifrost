@@ -3,7 +3,7 @@ bifrost-openstack-ci-prep
 
 This role is intended to be utilized in order to set the installation
 environment and various job settings that are specific to OpenStack CI
-such that the Bifrost CI job is able to complete seccessfully.
+such that the bifrost CI job is able to complete successfully.
 
 Requirements
 ------------
@@ -48,7 +48,7 @@ of the logic to properly handle an OpenStack CI environment node.
 - hosts: localhost
   connection: local
   name: "Prepare for installation"
-  sudo: no
+  become: no
   gather_facts: yes
   pre_tasks:
     - name: "Set ci_testing_zuul if it appears we are running in upstream OpenStack CI"
@@ -88,3 +88,4 @@ limitations under the License.
 Author Information
 ------------------
 
+Ironic Developers

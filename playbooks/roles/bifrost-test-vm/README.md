@@ -1,7 +1,8 @@
 bifrost-test-vm
 ===============
 
-Gathers facts from nodes in the testvm group which is added by the bifrost-prepare-for-test role.
+Gathers facts from nodes in the testvm group which is added by the
+bifrost-prepare-for-test role.
 
 Requirements
 ------------
@@ -16,16 +17,17 @@ None at this time.  See Dependencies.
 Dependencies
 ------------
 
-This role is intended to be executed as part of BiFrost, after the bifrost-prepare-for-test role, as part of the test sequence.
+This role is intended to be executed as part of bifrost, after the
+bifrost-prepare-for-test role, as part of the test sequence.
 
 Example Playbook
 ----------------
 
 hosts: testvm
   name: "Tests connectivity to the VM"
-  sudo: no
+  become: no
   gather_facts: yes
-  remote_user: ubuntu
+  remote_user: root
   roles:
     - role: bifrost-test-vm
 

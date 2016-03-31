@@ -1,16 +1,20 @@
 {
     "availability_zone": "",
+{% if write_interfaces_file | bool == true %}
     "files": [
         {
             "content_path": "/content/0000",
             "path": "/etc/network/interfaces"
         }
     ],
-    "hostname": "{{ name }}",
-    "name": "{{ name }}",
+{% else %}
+    "files": [],
+{% endif %}
+    "hostname": {{ name|to_json }},
+    "name": {{ name|to_json }},
     "meta": {},
     "public_keys": {
-        "mykey": "{{ ssh_public_key }}"
+        "mykey": {{ ssh_public_key|to_json }}
     },
     "uuid": "{{ uuid }}"
 }

@@ -1,7 +1,7 @@
 bifrost-prep-for-install
 ========================
 
-This role performs the intial file downloads to allow a user to install
+This role performs the initial file downloads to allow a user to install
 bifrost.  It does not require internet access, as new URLs or local
 filesystem clones of repositories can be defined.
 
@@ -46,6 +46,18 @@ ironic_git_branch: Branch to install, defaults to "master".
 
 shade_git_branch: Branch to install, defaults to "master".
 
+copy_from_local_path: Boolean value, defaults to false. If set to true,
+                      the role will attempt to perform a filesystem copy of
+                      locally defined git repositories instead of cloning
+                      the local repositories in order to preserve the
+                      pre-existing repository state.  This is largely
+                      something that is needed in CI testing if dependent
+                      changes are pre-staged in the local repositories.
+
+ci_testing_zuul: Boolean value, default false. This value is utilized
+                 to tell the prepatory playbook when the prep role
+                 is running in a CI system with Zuul, which in such
+                 cases the repositories must be copied, not overwritten.
 Dependencies
 ------------
 
@@ -57,11 +69,11 @@ Example Playbook
 - hosts: localhost
   connection: local
   name: "Install Ironic"
-  sudo: yes
+  become: yes
   gather_facts: yes
   roles:
     - { role: bifrost-prep-for-install, when: skip_install is not defined }
-    - role: ironic-install
+    - role: bifrost-ironic-install
       cleaning: false
       testing: true
 
@@ -85,3 +97,4 @@ limitations under the License.
 Author Information
 ------------------
 
+Ironic Developers

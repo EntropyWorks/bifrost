@@ -9,31 +9,38 @@
 - hosts: localhost
   connection: local
   name: "Executes install, enrollment, and testing in one playbook"
-  sudo: no
+  become: no
   gather_facts: yes
   pre_tasks:
     - name: "Set ci_testing_zuul if it appears we are running in upstream OpenStack CI"
       set_fact:
          ci_testing: true
          ci_testing_zuul: true
-         ironic_git_url: /opt/git/openstack/ironic
-         ironicclient_git_url: /opt/git/openstack/python-ironicclient
-         shade_git_url: /opt/git/openstack-infra/shade
-      when: lookup('env', 'ZUUL_BRANCH') != ""
+         ironic_git_url: "{{ lookup('env', 'WORKSPACE') }}/openstack/ironic"
+         ironicclient_git_url: "{{ lookup('env', 'WORKSPACE') }}/openstack/python-ironicclient"
+         shade_git_url: "{{ lookup('env', 'WORKSPACE') }}/openstack-infra/shade"
+         dib_git_url: "/opt/git/openstack/diskimage-builder"
+      # TODO(TheJulia) Fix the above paths to be consistent, because the NV job gets the dib
+      # folder cloned, while the gate job does not.  Likely need to work out a semi-hybrid
+      # solution.
+      when: lookup('env', 'ZUUL_BRANCH') | length > 0
     - name: "Set ci_testing_zuul_changes if ZUUL_CHANGES is set"
       set_fact:
          ci_testing_zuul_changes: true
-      when: lookup('env', 'ZUUL_CHANGES') != ""
+      when: lookup('env', 'ZUUL_CHANGES') | length > 0
     - name: "Override the ipv4_gateway setting"
       set_fact:
          ipv4_gateway: "192.168.122.1"
   roles:
     - { role: bifrost-prep-for-install, when: skip_install is not defined }
     - { role: bifrost-openstack-ci-prep, when: ci_testing_zuul is defined }
+  environment:
+    http_proxy: "{{ lookup('env','http_proxy') }}"
+    https_proxy: "{{ lookup('env','https_proxy') }}"
 - hosts: localhost
   connection: local
   name: "Executes install, enrollment, and testing in one playbook"
-  sudo: yes
+  become: yes
   gather_facts: yes
   pre_tasks:
     - name: "Collect process list if running in a CI System"
@@ -44,18 +51,27 @@
       when: ci_testing is defined
   roles:
     - role: bifrost-create-vm-nodes
-    - role: ironic-install
+    - role: bifrost-ironic-install
       cleaning: false
       testing: true
+    # NOTE(TheJulia): While the next step creates a ramdisk, some elements
+    # do not support ramdisk-image-create as they invoke steps to cleanup
+    # the ramdisk which causes ramdisk-image-create to believe it failed.
+    - { role: bifrost-create-dib-image, dib_imagename: "{{ http_boot_folder }}/ipa", build_ramdisk: false, dib_os_element: "{{ ipa_dib_os_element|default('debian') }}", dib_os_release: "jessie", dib_elements: "ironic-agent {{ ipa_extra_dib_elements | default('') }}", when: create_ipa_image | bool == true }
+    - { role: bifrost-create-dib-image, dib_imagetype: "qcow2", dib_imagename: "{{deploy_image}}", dib_os_element: "debian", dib_os_release: "jessie", dib_elements: "vm serial-console simple-init {{ extra_dib_elements|default('') }}", when: create_image_via_dib == true and transform_boot_image == false }
+  environment:
+    http_proxy: "{{ lookup('env','http_proxy') }}"
+    https_proxy: "{{ lookup('env','https_proxy') }}"
 - hosts: baremetal
   name: "Enroll node with Ironic"
-  sudo: no
+  become: no
   connection: local
   roles:
     - role: ironic-enroll-dynamic
+    - { role: ironic-inspect-node, when: inspect_nodes | default('false') | bool }
 - hosts: baremetal
   name: "Creat configuration drive files and deploy machines."
-  sudo: no
+  become: no
   connection: local
   roles:
     - role: bifrost-configdrives-dynamic
@@ -65,7 +81,7 @@
 # on the contents of the CSV file.
 - hosts: test
   name: "Tests connectivity to the VM"
-  sudo: no
+  become: no
   gather_facts: no
   remote_user: "{{ testing_user }}"
   roles:
@@ -73,7 +89,7 @@
 - hosts: baremetal
   connection: local
   name: "Unprovisions the test node"
-  sudo: no
+  become: no
   gather_facts: no
   roles:
     - role: bifrost-unprovision-node-dynamic

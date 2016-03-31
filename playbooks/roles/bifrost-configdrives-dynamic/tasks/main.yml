@@ -12,36 +12,85 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+# Note(TheJulia): Fact collection from ironic is necessary to obtain
+# the host's assigned UUID value.
+- name: "Update facts from ironic to fill in any missing values"
+  include: update_facts_from_ironic.yaml
 - name: "Identify ssh_public_key if ssh_public_key_path is defined"
   include: ssh_public_key_path.yaml
   when: ssh_public_key is undefined and ssh_public_key_path is defined
-- name: "Name Make Temporary folder to build configdrive"
+- name: "Make temporary folder to build configdrive"
   local_action: command mktemp -d
   register: variable_configdrive_location
-- name: "Make Metadata folder - /openstack/{{ metaata_version }}"
-  local_action: file state=directory name={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/{{ metadata_version }}/
-- name: "Make Metadata folder - /openstack/latest"
-  local_action: file state=directory name={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/latest/
+- name: "Make metadata folder - /openstack/{{ metadata_version }}"
+  file:
+    state: directory
+    name: "{{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/{{ metadata_version }}/"
+- name: "Make metadata folder - /openstack/latest"
+  file:
+    state: directory
+    name: "{{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/latest/"
 - name: "Place template in each openstack/{{ metadata_version }} folder"
-  local_action: template src=openstack_meta_data.json.j2 dest={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/{{ metadata_version }}/meta_data.json
+  template:
+    src: openstack_meta_data.json.j2
+    dest: "{{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/{{ metadata_version }}/meta_data.json"
 - name: "Place template in each openstack/latest folder"
-  local_action: template src=openstack_meta_data.json.j2 dest={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/latest/meta_data.json
+  template:
+    src: openstack_meta_data.json.j2
+    dest: "{{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/latest/meta_data.json"
+- name: "Generate network_info"
+  network_metadata:
+    ipv4_address: "{{ ipv4_address | default('') }}"
+    ipv4_gateway: "{{ ipv4_gateway | default('') }}"
+    ipv4_interface_mac: "{{ ipv4_interface_mac | default('') }}"
+    ipv4_nameserver: "{{ ipv4_nameserver | default('') }}"
+    ipv4_subnet_mask: "{{ ipv4_subnet_mask | default('') }}"
+    vlan_id: "{{ vlan_id | default('') }}"
+    network_mtu: "{{ network_mtu | default('1500') }}"
+    nics: "{{ nics | default(omit) }}"
+    node_network_info: "{{ node_network_info | default('') }}"
+  when: addressing_mode is undefined or "dhcp" not in addressing_mode
 - name: "Place network info template in each openstack/latest folder"
-  local_action: template src=network_info.json.j2 dest={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/latest/network_info.json
-  when: addressing_mode is undefined and '"dhcp" not in addressing_mode'
-- name: "Make Metadata folder - /openstack/latest"
-  local_action: file state=directory name={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/content/
-- name: "Write network interface template"
+  template:
+    src: network_info.json.j2
+    dest: "{{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/latest/network_info.json"
+  when: addressing_mode is undefined or "dhcp" not in addressing_mode
+- name: "Make metadata folder - /openstack/latest"
+  file:
+    state: directory
+    name: "{{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/content/"
+- name: "Write network Debian style interface template"
   local_action: template src=interfaces.j2 dest={{ variable_configdrive_location.stdout }}/{{ uuid }}/openstack/content/0000
+  when: write_interfaces_file | bool
+- name: "Check if mkisofs is available"
+  shell: mkisofs --help >>/dev/null
+  ignore_errors: yes
+  register: test_mkisofs
+- name: "If mkisofs is not available, fallback to genisoimage"
+  set_fact:
+    iso_gen_utility: "genisoimage"
+  when: ('genisoimage' in test_mkisofs.stderr) or test_mkisofs.rc != 0
+- name: "Check if genisoimage is available"
+  shell: genisoimage --help >>/dev/null
+  ignore_errors: yes
+  register: test_genisoimage
+- name: "fail if genisoimage is not available."
+  fail: msg="Neither mkisofs or genisoimage is available. Cannot make config drive files."
+  when: test_genisoimage.rc != 0 and test_mkisofs.rc != 0
 - name: "Make config drive files"
-  sudo: yes
-  local_action: command mkisofs -R -V config-2 -o {{http_boot_folder}}/configdrive-{{ uuid }}.iso {{ variable_configdrive_location.stdout }}/{{ uuid }}
+  become: yes
+  command: "{{iso_gen_utility}} -R -V config-2 -o {{http_boot_folder}}/configdrive-{{ uuid }}.iso {{ variable_configdrive_location.stdout }}/{{ uuid }}"
 - name: "Make config drive files base64 encoded and gzip compressed"
-  sudo:  yes
-  local_action: shell gzip -c {{http_boot_folder}}/configdrive-{{ uuid }}.iso | base64 > {{http_boot_folder}}/configdrive-{{ uuid }}.iso.gz
+  become:  yes
+  shell: gzip -c {{http_boot_folder}}/configdrive-{{ uuid }}.iso | base64 > {{http_boot_folder}}/configdrive-{{ uuid }}.iso.gz
 - name: "Cleanup configdrive .iso files"
-  sudo: yes
-  local_action: file state=absent name={{http_boot_folder}}/configdrive-{{ uuid }}.iso
+  become: yes
+  file:
+    state: absent
+    name: "{{http_boot_folder}}/configdrive-{{ uuid }}.iso"
 - name: "Cleanup configdrive temp folder"
-  sudo: yes
-  local_action: file state=absent force=yes name={{ variable_configdrive_location.stdout }}
+  become: yes
+  file:
+    state: absent
+    force: yes
+    name: "{{ variable_configdrive_location.stdout }}"

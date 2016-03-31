@@ -1,22 +1,48 @@
 ironic-enroll-dynamic
 =====================
 
-Enrolls nodes into Ironic utilizing the os_ironic Ansible module that is installed by Bifrost.
+Enrolls nodes into Ironic utilizing the os_ironic Ansible module that is
+installed by Bifrost.
 
 Requirements
 ------------
 
-This role is dependent upon the os-ironic ansible module, which is dependent upon shade (https://git.openstack.org/cgit/openstack-infra/shade/), which in this case is presently dependent upon the Ironic Python Client Library (http://git.openstack.org/cgit/openstack/python-ironicclient/).
+This role is dependent upon the os-ironic ansible module, which is dependent
+upon shade (https://git.openstack.org/cgit/openstack-infra/shade/), which in
+this case is presently dependent upon the Ironic Python Client Library
+(http://git.openstack.org/cgit/openstack/python-ironicclient/).
 
 Role Variables
 --------------
 
-ironic_url: The setting defining the URL to the Ironic API.  Presently defaulted to: "http://localhost:6385/"
+ironic_url: The setting defining the URL to the Ironic API.  Presently
+            defaulted to: "http://localhost:6385/"
 
-deploy_kernel: The kernel url, image id, or file representing the kernel to utilize for deploying to this node.
-deploy_ramdisk: The ramdisk url, image id, or file representing the ramdisk image to load to deploy this node.
+ipa_kernel: The kernel url, image id, or file representing the kernel to
+            utilize for deploying to this node. This should be the kernel
+            used for the Ironic Python Agent.
 
-This role expects a data structure similar to the one below, however it should be understood that the individual entries under power can vary based on power driver required.
+ipa_ramdisk: The ramdisk url, image id, or file representing the ramdisk
+             image to utilize to deploy this node. This should be the ramdisk
+             used for the Ironic Python Agent.
+
+ipa_file_protocol: The protocol to utilize to access IPA files. The default is
+                   to utilize HTTP in generated HTTP URLs for bifrost, however
+                   this setting allows a user to change that default if they
+                   they have a modified local webserver configuration.
+                   Do note, that a user wishing to utilize HTTPS may wish to
+                   review the iPXE documentation: http://ipxe.org/crypto
+
+noauth_mode: Controls if the module is called in noauth mode.
+             By default, this is the standard mode of operation,
+             however if set to false, the role utilizes os_client_config
+             which expects a clouds.yml file.  More information about
+             this file format can be found at:
+             http://docs.openstack.org/developer/os-client-config/
+
+This role expects a data structure similar to the one below, however it should
+be understood that the individual entries under power can vary based on power
+driver required.
 
 {
   "node1": {
@@ -51,7 +77,8 @@ This role expects a data structure similar to the one below, however it should b
 Dependencies
 ------------
 
-This role is presently dependent upon the ironic-install role which installs the necessary requirements.
+This role is presently dependent upon the bifrost-ironic-install role which
+installs the necessary requirements.
 
 Example Playbook
 ----------------

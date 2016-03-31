@@ -15,8 +15,11 @@ ipv4_address: The host IPv4 address defined on each host to perform
 
 node_ssh_pause: The amount of time, defaulted to 4 seconds, to pause
                 before attempting to connect to the node.  This is
-                useeful if the test image has a tendency to have
+                useful if the test image has a tendency to have
                 networking restart after sshd has started.
+
+wait_timeout: The number of seconds to wait for SSH connectivity to
+              the test machine to be established before proceeding.
 
 Dependencies
 ------------
@@ -32,7 +35,7 @@ Example Playbook
 - hosts: baremetal
   connection: local
   name: "Adds and removes a .ssh/known_hosts entry"
-  sudo: no
+  become: no
   gather_facts: no
   roles:
     - role: bifrost-prepare-for-test-dynamic
@@ -50,7 +53,7 @@ You may obtain a copy of the License at
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express orimplied.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 

@@ -1,0 +1,107 @@
+# Configuration file for dnsmasq.
+#
+# Format is one option per line, legal options are the same
+# as the long options legal on the command line. See
+# "/usr/sbin/dnsmasq --help" or "man 8 dnsmasq" for details.
+
+# Listen on this specific port instead of the standard DNS port
+# (53). Setting this to zero completely disables DNS function,
+# leaving only DHCP and/or TFTP.
+{% if disable_dnsmasq_dns %}
+port=0
+{% else %}
+port=53
+{% endif %}
+
+# If you want dnsmasq to listen for DHCP and DNS requests only on
+# specified interfaces (and the loopback) give the name of the
+# interface (eg eth0) here.
+# Repeat the line for more than one interface.
+{% if testing %}
+interface=virbr0
+{% else %}
+interface={{ network_interface }}
+{% endif %}
+
+# On systems which support it, dnsmasq binds the wildcard address,
+# even when it is listening on only some interfaces. It then discards
+# requests that it shouldn't reply to. This has the advantage of
+# working even when interfaces come and go and change address. If you
+# want dnsmasq to really bind only the interfaces it is listening on,
+# uncomment this option. About the only time you may need this is when
+# running another nameserver on the same machine.
+bind-interfaces
+
+# Include another lot of configuration options.
+#conf-file=/etc/dnsmasq.more.conf
+conf-dir=/etc/dnsmasq.d
+
+# If you don't want dnsmasq to read /etc/hosts, uncomment the
+# following line.
+#no-hosts
+# or if you want it to read another file, as well as /etc/hosts, use
+# this.
+#addn-hosts=/etc/banner_add_hosts
+{% if inventory_dhcp %}
+addn-hosts=/etc/dnsmasq.d/bifrost.hosts.d
+dhcp-hostsfile=/etc/dnsmasq.d/bifrost.dhcp-hosts.d
+dhcp-ignore=tag:!known
+{% endif %}
+
+# Set the domain for dnsmasq. this is optional, but if it is set, it
+# does the following things.
+# 1) Allows DHCP hosts to have fully qualified domain names, as long
+#     as the domain part matches this setting.
+# 2) Sets the "domain" DHCP option thereby potentially setting the
+#    domain of all systems configured by DHCP
+# 3) Provides the domain part for "expand-hosts"
+#domain=thekelleys.org.uk
+{% if domain is defined %}
+domain={{ domain }}
+{% endif %}
+
+# Uncomment this to enable the integrated DHCP server, you need
+# to supply the range of addresses available for lease and optionally
+# a lease time. If you have more than one network, you will need to
+# repeat this for each network on which you want to supply DHCP
+# service.
+{% if testing %}
+dhcp-range=192.168.122.2,192.168.122.254,12h
+{% elif inventory_dhcp %}
+dhcp-range={{dhcp_pool_start}},{{dhcp_pool_end}},static,{{dhcp_static_mask}},{{dhcp_lease_time}}
+{% else %}
+dhcp-range={{dhcp_pool_start}},{{dhcp_pool_end}},{{dhcp_lease_time}}
+{% endif %}
+
+# Override the default route supplied by dnsmasq, which assumes the
+# router is the same machine as the one running dnsmasq.
+{% if dnsmasq_router is defined %}
+{% if dnsmasq_router | bool == false %}
+dhcp-option=3
+{% else %}
+dhcp-option=3,{{dnsmasq_router}}
+{% endif %}
+{% endif %}
+
+{% if dnsmasq_dns_servers is defined %}
+dhcp-option=6,{{dnsmasq_dns_servers}}
+{% endif %}
+
+# Boot for Etherboot gPXE. The idea is to send two different
+# filenames, the first loads gPXE, and the second tells gPXE what to
+# load. The dhcp-match sets the gpxe tag for requests from gPXE.
+dhcp-userclass=set:gpxe,"gPXE"
+dhcp-boot=tag:gpxe,/ipxe.pxe
+
+dhcp-match=set:ipxe,175 # iPXE sends a 175 option.
+dhcp-boot=tag:!ipxe,/undionly.kpxe
+{% if testing %}
+dhcp-boot=http://192.168.122.1:{{ file_url_port }}/boot.ipxe
+{% else %}
+dhcp-boot=http://{{ hostvars[inventory_hostname]['ansible_' + ans_network_interface]['ipv4']['address'] }}:{{ file_url_port }}/boot.ipxe
+{% endif %}
+
+{% if testing %}
+log-queries
+log-dhcp
+{% endif %}

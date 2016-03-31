@@ -1,7 +1,8 @@
 bifrost-unprovision-node-dynamic
 =================================
 
-This role unprovisions nodes.  Essentially calls `ironic node-set-provisioned-state <uuid> deleted`
+This role unprovisions nodes.  Essentially calls
+`ironic node-set-provisioned-state <uuid> deleted`
 
 Requirements
 ------------
@@ -15,12 +16,21 @@ Role Variables
 
 uuid: The UUID value for the node, at the host level.
 
-ironic_url: The setting defining the URL to the Ironic API.  Presently defaulted to: "http://localhost:6385/"
+ironic_url: The setting defining the URL to the Ironic API.  Presently
+            defaulted to: "http://localhost:6385/"
+
+noauth_mode: Controls if the module is called in noauth mode.
+             By default, this is the standard mode of operation,
+             however if set to false, the role utilizes os_client_config
+             which expects a clouds.yml file.  More information about
+             this file format can be found at:
+             http://docs.openstack.org/developer/os-client-config/
 
 Dependencies
 ------------
 
-This role has no roles that it is directly dependent upon, but expects that the environment has been installed with the ironic-install role.
+This role has no roles that it is directly dependent upon, but expects that the
+environment has been installed with the bifrost-ironic-install role.
 
 Example Playbook
 ----------------
@@ -28,7 +38,7 @@ Example Playbook
 - hosts: baremetal
   connection: local
   name: "Unprovisions the test node"
-  sudo: no
+  become: no
   gather_facts: no
   roles:
     - role: bifrost-unprovision-node-dynamic

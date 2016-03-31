@@ -1,8 +1,8 @@
 ironic-delete-dynamic
 =====================
 
-Removes nodes from Ironic utilizing the os_ironic Ansible module that is
-installed by Bifrost.
+Removes nodes from ironic utilizing the os_ironic Ansible module that is
+installed by bifrost.
 
 Requirements
 ------------
@@ -24,11 +24,18 @@ nics: A list of dictionary key-value pairs in the format of a key value
 
   [{'mac':'01:02:03:04:05:06'},{'mac':'01:02:03:04:05:07'}]
 
+noauth_mode: Controls if the module is called in noauth mode.
+             By default, this is the standard mode of operation,
+             however if set to false, the role utilizes os_client_config
+             which expects a clouds.yml file.  More information about
+             this file format can be found at:
+             http://docs.openstack.org/developer/os-client-config/
+
 Dependencies
 ------------
 
 This role has no direct role dependencies although is expected to be
-executed as part of Bifrost's test sequence.
+executed as part of bifrost's test sequence.
 
 Example Playbook
 ----------------
@@ -36,7 +43,7 @@ Example Playbook
 - hosts: baremetal
   connection: local
   name: "Delete the node"
-  sudo: no
+  become: no
   gather_facts: no
   roles:
     - role: ironic-delete-dynamic

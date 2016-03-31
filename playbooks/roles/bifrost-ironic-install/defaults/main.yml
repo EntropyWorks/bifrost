@@ -1,0 +1,126 @@
+---
+# Cleaning turns on ironic conductor clean_nodes flag
+# which causes the nodes to be wiped after deletion.
+cleaning: false
+http_boot_folder: /httpboot
+# Deprecated: nginx_port is no longer used and file_url_port should
+# be used instead.
+file_url_port: "{{ nginx_port | default('8080') }}"
+ironicclient_source_install: false
+shade_source_install: true
+# Setting to utilize diskimage-builder to create a bootable image.
+create_image_via_dib: true
+# Setting to prepend a partition image with a boot sector and partition table.
+transform_boot_image: false
+# If testing is true, then the environment is setup for using libvirt
+# virtual machines for the hardware instead of real hardware.
+testing: false
+ci_testing: false
+
+# Default network interface that bifrost will be attached to.
+# This is used in ipa_* so it must be before
+network_interface: "virbr0"
+ans_network_interface: "{{ network_interface | replace('-', '_') }}"
+
+# Normally this would setting would be http in a bifrost installation
+# without TLS. This setting allows a user to override the setting in case
+# the local webserver has been updated to support HTTPS.
+# Note: Users wishing to leverage HTTPS should reference the iPXE
+# documentation at http://ipxe.org/crypto
+ipa_file_protocol: "http"
+
+ipa_kernel: "{{http_boot_folder}}/ipa.vmlinuz"
+ipa_ramdisk: "{{http_boot_folder}}/ipa.initramfs"
+ipa_kernel_url: "{{ ipa_file_protocol }}://{{ hostvars[inventory_hostname]['ansible_' + ans_network_interface]['ipv4']['address'] }}:{{file_url_port}}/ipa.vmlinuz"
+ipa_kernel_upstream_url: http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe.vmlinuz
+ipa_ramdisk_url: "{{ ipa_file_protocol }}://{{ hostvars[inventory_hostname]['ansible_' + ans_network_interface]['ipv4']['address'] }}:{{file_url_port}}/ipa.initramfs"
+ipa_ramdisk_upstream_url: http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem.cpio.gz
+deploy_image_filename: "deployment_image.qcow2"
+deploy_image: "{{http_boot_folder}}/{{deploy_image_filename}}"
+# Use cirros instead of building an image via diskimage-builder
+use_cirros: false
+# Download IPA by default
+download_ipa: true
+cirros_deploy_image_upstream_url: http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
+# By default bifrost will deploy dnsmasq to utilize as an integrated DHCP
+# server.  If you already have a DHCP server, you will need to disable
+# this setting, and perform manual configuration of your DHCP server.
+include_dhcp_server: true
+# *_git_url can be overridden by local clones for offline installs
+dib_git_url: https://git.openstack.org/openstack/diskimage-builder
+ironicclient_git_url: https://git.openstack.org/openstack/python-ironicclient
+shade_git_url: https://git.openstack.org/openstack-infra/shade
+ironic_git_url: https://git.openstack.org/openstack/ironic
+mysql_username: "root"
+mysql_password: ""
+disable_dnsmasq_dns: False
+ironic_git_folder: /opt/stack/ironic
+ironicclient_git_folder: /opt/stack/python-ironicclient
+shade_git_folder: /opt/stack/shade
+dib_git_folder: /opt/stack/diskimage-builder
+# Comma-separated list, in the format of a string, of drivers that are enabled
+# by default. This is intended to be a list of agent based drivers.
+# PXE drivers can be found in the setting pxe_drivers that can be found below.
+enabled_drivers: "agent_ipmitool,agent_ilo,agent_ucs"
+
+# DHCP pool for requests -- ignored if inventory_dhcp is set to True
+# since IP allocation will be static.
+dhcp_pool_start: 192.168.1.200
+dhcp_pool_end: 192.168.1.250
+dhcp_lease_time: 12h
+dhcp_static_mask: 255.255.255.0
+# Dnsmasq default route for clients. If not defined, dnsmasq will push to clients
+# as default route the same IP of the dnsmasq server.
+# If set to false, it will disable default route creation in clients.
+# Default: undefined
+# dnsmasq_router:
+
+# Dnsmasq default dns servers for clients. If defined, dnsmasq will use the specified
+# DNS servers for name resolving.
+# dnsmasq_dns_servers: 8.8.8.8,8.8.4.4
+
+# Support for CORS configuration
+# By default CORS support is disabled.
+enable_cors: false
+# Origin to accept for CORS requests
+cors_allowed_origin: "http://localhost:8000"
+# bifrost utilizes noauth mode by default and as such
+# the setting should be set to false. This setting should
+# not need to be modified by the user.
+enable_cors_credential_support: false
+
+# Set this to true to configure dnsmasq to respond to requests from the
+# hosts in your dynamic inventory.
+inventory_dhcp: False
+
+# Set this to true to configure dnsmasq to resolv to ipv4_address from the
+# hosts in your dynamic inventory.
+inventory_dns: False
+
+# Settings to enable the use of inspector
+enable_inspector: false
+inspector_auth: "noauth"
+inspector_debug: true
+inspector_manage_firewall: false
+ironic_auth_strategy: "noauth"
+inspector_data_dir: "/opt/stack/ironic-inspector/var"
+inspector_store_ramdisk_logs: true
+# Note: inspector_port_addition has three valid values: all, active, pxe
+inspector_port_addition: "pxe"
+
+# Note: inspector_keep_ports has three valid values: all, present, added
+inspector_keep_ports: "present"
+
+# This enables installation of substrate for PXE driver support
+enable_pxe_drivers: true
+# Comma-separated list of PXE drivers to enable when
+# enable_pxe_drivers is set to true
+pxe_drivers: "pxe_amt,pxe_ssh,pxe_ipmitool,pxe_ilo"
+
+# Settings related to installing bifrost in a virtual environment
+enable_venv: false
+bifrost_venv_dir: "{{ lookup('env', 'VENV') | default('/opt/stack/bifrost') }}"
+bifrost_venv_env:
+  VIRTUAL_ENV: "{{ bifrost_venv_dir }}"
+  PATH: "{{ bifrost_venv_dir }}/bin:{{ ansible_env.PATH }}" # include regular path via lookup env
+  pydoc: "python -m pydoc"

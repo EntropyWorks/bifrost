@@ -1,2 +1,20 @@
 ---
 ironic_url: "http://localhost:6385/"
+# Deprecated: nginx_port is no longer used and file_url_port should
+# be used instead.
+file_url_port: "{{ nginx_port | default('8080') }}"
+# Default network interface that bifrost will be attached to.
+network_interface: "virbr0"
+ans_network_interface: "{{ network_interface | replace('-', '_') }}"
+
+# Normally this would setting would be http in a bifrost installation
+# without TLS. This setting allows a user to override the setting in case
+# the local webserver has been updated to support HTTPS.
+# Note: Users wishing to leverage HTTPS should reference the iPXE
+# documentation at http://ipxe.org/crypto
+ipa_file_protocol: "http"
+
+ipa_kernel_url: "{{ ipa_file_protocol }}://{{ hostvars[inventory_hostname]['ansible_' + ans_network_interface]['ipv4']['address'] }}:{{file_url_port}}/ipa.vmlinuz"
+ipa_ramdisk_url: "{{ ipa_file_protocol }}://{{ hostvars[inventory_hostname]['ansible_' + ans_network_interface]['ipv4']['address'] }}:{{file_url_port}}/ipa.initramfs"
+
+noauth_mode: true

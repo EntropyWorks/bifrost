@@ -82,6 +82,7 @@ def main():
         name=dict(required=False),
         mac=dict(required=False),
         ironic_url=dict(required=False),
+        skip_items=dict(required=False, type='list'),
     )
     module_kwargs = openstack_module_kwargs()
     module = AnsibleModule(argument_spec, **module_kwargs)
@@ -114,13 +115,25 @@ def main():
         if server:
             facts = dict(server)
             new_driver_info = dict()
-            # Rebuild driver_info to remove any password
-            # fields as they can be masked.
+            # Rebuild driver_info to remove any password values
+            # as they will be masked.
             for key, value in six.iteritems(facts['driver_info']):
                 if 'password' not in key:
                     new_driver_info[key] = value
             if new_driver_info:
                 facts['driver_info'] = new_driver_info
+
+            for item in module.params['skip_items']:
+                if item in facts:
+                    del facts[item]
+
+            # Remove ports and links as they are useless in the ansible
+            # use context.
+            if "ports" in facts:
+                del facts["ports"]
+            if "links" in facts:
+                del facts["links"]
+
             module.exit_json(changed=False, ansible_facts=facts)
 
         else:

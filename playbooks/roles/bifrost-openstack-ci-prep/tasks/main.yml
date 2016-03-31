@@ -13,15 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-- name: "Shade - Apply CI changes if necessary"
-  script: parse_zuul_changes.py {{ shade_git_folder }} https://review.openstack.org openstack-infra/shade "{{ lookup('env', 'ZUUL_CHANGES') }}"
-  when: ci_testing_zuul_changes is defined and skip_install | bool != true
-- name: "python-ironicclient - Apply CI changes if necessary"
-  script: parse_zuul_changes.py {{ ironicclient_git_folder }} https://review.openstack.org openstack/python-ironicclient "{{ lookup('env', 'ZUUL_CHANGES') }}"
-  when: ci_testing_zuul_changes is defined and skip_install | bool != True
-- name: "Ironic - Apply CI changes if necessary"
-  script: parse_zuul_changes.py {{ ironic_git_folder }} https://review.openstack.org openstack/ironic "{{ lookup('env', 'ZUUL_CHANGES') }}"
-  when: ci_testing_zuul_changes is defined and skip_install | bool != True
 # NOTE(TheJulia): Override the stored fact values for username/password when operating
 # in OpenStack CI.
 - name: "Set facts for OpenStack CI"
@@ -36,7 +27,16 @@
   when: ci_testing_zuul is defined
 - name: "Create an SSH key for Jenkins user if operating in OpenStack CI"
   shell: ssh-keygen -f ~/.ssh/id_rsa -N ""
-  when: ci_testing_zuul is defined and test_ssh_public_key_path.stat.exists == false
-- name: "Create an empty ssh known_hosts file for Jenkins user if operating in OpenStack CI"
-  shell: touch ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts
-  when: ci_testing_zuul is defined and test_ssh_public_key_path.stat.exists == false
+  when: >
+    ci_testing_zuul is defined and
+    test_ssh_public_key_path.stat.exists |bool  == false
+- name: >
+    "Create an empty SSH known_hosts file for Jenkins user
+    if operating in OpenStack CI"
+  file:
+    path: "~/.ssh/known_hosts"
+    state: touch
+    mode: 0600
+  when: >
+    ci_testing_zuul is defined and
+    test_ssh_public_key_path.stat.exists | bool == false

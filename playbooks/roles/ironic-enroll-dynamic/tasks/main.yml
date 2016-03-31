@@ -12,19 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-- name: "Dynamic Enrollment"
-  os_ironic:
+- name: "If in noauth mode, set Auth parameters to None"
+  set_fact:
     auth_type: None
     auth: None
+  when: noauth_mode | bool == true
+- name: "Dynamic enrollment"
+  os_ironic:
+    auth_type: "{{ auth_type | default(omit) }}"
+    auth: "{{ auth | default(omit) }}"
     ironic_url: "{{ ironic_url }}"
     driver: "{{ driver }}"
-    uuid: "{{ uuid }}"
+    uuid: "{{ uuid | default() }}"
+    name: "{{ name | default() }}"
     state: present
     nics: "{{nics}}"
     properties: "{{ properties }}"
     driver_info:
       power: "{{ driver_info.power }}"
       deploy:
-        deploy_kernel: "{{ deploy_kernel_url }}"
-        deploy_ramdisk: "{{ deploy_ramdisk_url }}"
+        deploy_kernel: "{{ ipa_kernel_url }}"
+        deploy_ramdisk: "{{ ipa_ramdisk_url }}"
   delegate_to: localhost
